@@ -68,7 +68,7 @@ def check_status(name, status):
     for x in status:
         states = [st.strip() for st in i[4].split(',')]
         if x not in states:
-            print("In test '" + test_name + "' at line " + current_line + ":")
+            print("In test '" + test_name + "' at line " + str(current_line) + ":")
             print("Expected", status, "got", i[4])
             print(get_output())
             return False
@@ -83,7 +83,7 @@ def check_no_status(name, status):
     for x in status:
         states = [st.strip() for st in i[4].split(',')]
         if x in states:
-            print("In test '" + test_name + "' at line " + current_line + ":")
+            print("In test '" + test_name + "' at line " + str(current_line) + ":")
             print("Unexpected", status)
             print(get_output())
             return False
