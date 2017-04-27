@@ -18,6 +18,6 @@ mysql -u $user -p$password -h $host -P $port -e "$table_def"
 
 while true
 do
-    mysql -u $user -p$password -h $host -P $port -e "$table_def"
+    mysql -u $user -p$password -h $host -P $port -e "$table_insert"
     sleep 1
 done

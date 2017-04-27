@@ -17,6 +17,9 @@ parser.add_argument("-u", "--user", dest="user", help="MaxAdmin user", default="
 parser.add_argument("-p", "--password", dest="password", help="MaxAdmin password", default="mariadb")
 parser.add_argument("-P", "--port", dest="port", help="MaxAdmin listener port", default="6603")
 parser.add_argument("-i", "--interactive", dest="interactive", help="Run test in interactive mode", default=True)
+parser.add_argument("-s", "--bootstrap", dest="bootstrap", help="Script used to bootstrap the test environment")
+parser.add_argument("-c", "--client", dest="client", help="Client script used to add load to the test environment")
+parser.add_argument("-v", "--verbose", dest="verbose", help="Verbose output", default=False)
 parser.add_argument("TEST", help="Test to run", nargs="+")
 options = parser.parse_args(sys.argv[1:])
 
@@ -54,16 +57,17 @@ class Test():
 
 
 def get_output():
-     return subprocess.run([options.bin, "-u", options.user,
-                            "-p" + options.password, "-h", options.host,
-                            "-P", options.port, "list", "servers"],
-                           stdout=subprocess.PIPE).stdout.decode()
+    output = subprocess.run([options.bin, "-u", options.user,
+                             "-p" + options.password, "-h", options.host,
+                             "-P", options.port, "list", "servers"],
+                            stdout=subprocess.PIPE).stdout.decode().split('\n')
+    return output[4:len(output) - 2]
 
 
 def check_status(name, status):
     global current_line
-    output = get_output().split('\n')
-    i = [z.strip() for a in output[4:len(output) - 2] for z in a.split('|') if name == a.split('|')[0].strip()]
+    output = get_output()
+    i = [z.strip() for a in output for z in a.split('|') if name == a.split('|')[0].strip()]
 
     for x in status:
         states = [st.strip() for st in i[4].split(',')]
@@ -77,8 +81,8 @@ def check_status(name, status):
 
 def check_no_status(name, status):
     global current_line
-    output = get_output().split('\n')
-    i = [z.strip() for a in output[4:len(output) - 2] for z in a.split('|') if name == a.split('|')[0].strip()]
+    output = get_output()
+    i = [z.strip() for a in output for z in a.split('|') if name == a.split('|')[0].strip()]
 
     for x in status:
         states = [st.strip() for st in i[4].split(',')]
@@ -95,41 +99,53 @@ def get_statelist():
     invalid_states = ["MM", "SS", "SX", "XS"]
     return [x + y for x in states for y in states if x + y not in invalid_states]
 
-def run_test(t):
+
+def do_bootstrap(script):
+    subprocess.run([script], shell=True)
+
+
+def run_test(tname):
     global current_line
-    f = open(t)
+    current_line = 0
 
-    for x in f:
-        current_line += 1
-        x = x.strip()
+    with open(tname) as f:
+        print("Running test:", tname)
 
-        if options.interactive == True:
-            input("Press Enter to transition from " + test.state + " to " + x)
+        for x in f:
+            current_line += 1
+            x = x.strip()
 
-        if x == "MS":
-            test.ms()
-            check_status("server1", ["Master", "Running"])
-            check_status("server2", ["Slave", "Running"])
-        elif x == "MX":
-            test.mx()
-            check_status("server1", ["Master", "Running"])
-            check_no_status("server2", ["Running"])
-        elif x == "SM":
-            test.sm()
-            check_status("server1", ["Slave", "Running"])
-            check_status("server2", ["Master", "Running"])
-        elif x == "XM":
-            test.xm()
-            check_no_status("server1", ["Running"])
-            check_status("server2", ["Master", "Running"])
-        elif x == "XX":
-            test.xx()
-            check_no_status("server1", ["Running"])
-            check_no_status("server2", ["Running"])
-        else:
-            print("ERROR:", x)
+            if options.interactive == True:
+                input("Press Enter to transition from " + test.state + " to " + x)
 
-    f.close()
+            if x == "MS":
+                test.ms()
+                check_status("server1", ["Master", "Running"])
+                check_status("server2", ["Slave", "Running"])
+            elif x == "MX":
+                test.mx()
+                check_status("server1", ["Master", "Running"])
+                check_no_status("server2", ["Running"])
+            elif x == "SM":
+                test.sm()
+                check_status("server1", ["Slave", "Running"])
+                check_status("server2", ["Master", "Running"])
+            elif x == "XM":
+                test.xm()
+                check_no_status("server1", ["Running"])
+                check_status("server2", ["Master", "Running"])
+            elif x == "XX":
+                test.xx()
+                check_no_status("server1", ["Running"])
+                check_no_status("server2", ["Running"])
+            else:
+                print("ERROR:", x)
+
+            if options.verbose:
+                print("Expecting:", x)
+
+                for l in get_output():
+                    print([a.strip() for a in l.split('|')])
 
 
 # Create list of all allowed permutations of the three node states
@@ -144,7 +160,30 @@ transitions = [
     {"trigger": "sm", "source": ["MX", "XM"], "dest": "SM"},
 ]
 
-for test_name in options.TEST:
-    test = Test()
-    machine = Machine(model=test, states=statelist, initial=initial_state, transitions=transitions)
-    run_test(test_name)
+client = None
+
+try:
+    for test_name in options.TEST:
+        test = Test()
+        test.start(0)
+        test.start(1)
+
+        if options.bootstrap != None:
+            do_bootstrap(options.bootstrap)
+
+        if options.client != None:
+            client = subprocess.Popen([options.client], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        machine = Machine(model=test, states=statelist, initial=initial_state, transitions=transitions)
+        run_test(test_name)
+
+        if client != None:
+            client.kill()
+            client.communicate()
+
+
+except Exception as e:
+    print(e)
+    if client != None:
+        client.kill()
+        client.communicate()
