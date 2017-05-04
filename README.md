@@ -7,12 +7,14 @@ Running tests requires:
 
  - Python 3
  - transitions (pip3 install transitions)
+ - A local MaxAdmin executable
 
 Edit the following files to do the following actions:
 
 - `start.sh`: Start a node, either 0 or 1 is given as parameter for either first or second node
 - `stop.sh`: Stop a node, same parameters as start
-- `check.sh`: Print cluster status to stdout, intended to be used with maxadmin
+- `bootstrap.sh`: Bootstrap the cluster into a running state
+- `bootstrap_cluster_down.sh`: Bootstrap the cluster into a downed state
 
 ## Test syntax
 
@@ -25,5 +27,5 @@ MX
 MS
 ```
 
-This starts with the first server as Master (M) and the second server as Slave
-(S). Then the second server goes down (X) and is restarted again.
+This starts with the first server as Master and the second server as Slave
+(MS). Then the second server goes down (MX) and is restarted again (MS).
