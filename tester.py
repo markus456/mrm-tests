@@ -11,13 +11,13 @@ current_line = 0
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description = "MaxScale + replication-manager tester", conflict_handler="resolve")
-parser.add_argument("-b", "--binary", dest="maxadmin", help="MaxAdmin binady", default="/usr/bin/maxadmin")
+parser.add_argument("-a", "--maxadmin", dest="maxadmin", help="MaxAdmin binary", default="/usr/bin/maxadmin")
 parser.add_argument("-h", "--host", dest="host", help="MaxAdmin network address", default="localhost")
 parser.add_argument("-u", "--user", dest="user", help="MaxAdmin user", default="admin")
 parser.add_argument("-p", "--password", dest="password", help="MaxAdmin password", default="mariadb")
 parser.add_argument("-P", "--port", dest="port", help="MaxAdmin listener port", default="6603")
 parser.add_argument("-i", "--interactive", action="store_true", help="Run test in interactive mode", default=False)
-parser.add_argument("-s", "--bootstrap", help="Script used to bootstrap the test environment")
+parser.add_argument("-b", "--bootstrap", help="Script used to bootstrap the test environment")
 parser.add_argument("-c", "--client", help="Client script used to add load to the test environment")
 parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output", default=False)
 parser.add_argument("-z", "--sleep", help="How long to sleep between state changes", default=10)
