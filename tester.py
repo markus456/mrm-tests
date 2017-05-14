@@ -11,13 +11,16 @@ current_line = 0
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description = "MaxScale + replication-manager tester", conflict_handler="resolve")
-parser.add_argument("-a", "--maxadmin", dest="maxadmin", help="MaxAdmin binary", default="/usr/bin/maxadmin")
+parser.add_argument("-a", "--maxadmin", dest="maxadmin", help="Path to MaxAdmin binary", default="/usr/bin/maxadmin")
 parser.add_argument("-h", "--host", dest="host", help="MaxAdmin network address", default="localhost")
 parser.add_argument("-u", "--user", dest="user", help="MaxAdmin user", default="admin")
 parser.add_argument("-p", "--password", dest="password", help="MaxAdmin password", default="mariadb")
 parser.add_argument("-P", "--port", dest="port", help="MaxAdmin listener port", default="6603")
 parser.add_argument("-i", "--interactive", action="store_true", help="Run test in interactive mode", default=False)
-parser.add_argument("-b", "--bootstrap", help="Script used to bootstrap the test environment")
+parser.add_argument("-b", "--bootstrap", help=
+"""Script used to bootstrap the test environment. Tests can also define the
+bootstrap script in a comment by adding '# bootstrap: <path-to-script>' as the
+first line.""")
 parser.add_argument("-c", "--client", help="Client script used to add load to the test environment")
 parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output", default=False)
 parser.add_argument("-z", "--sleep", help="How long to sleep between state changes", default=10)
@@ -127,7 +130,12 @@ def run_test(tname):
         print("Running test:", tname)
 
         for x in f:
+
             current_line += 1
+
+            if '#' in x:
+                continue
+
             x = x.strip()
 
             if options.interactive == True:
@@ -163,8 +171,12 @@ def run_test(tname):
                     print([a.strip() for a in l.split('|')])
 
 
-def read_initial_state(test_name):
+def read_line(test_name, i):
     with open(test_name) as f:
+
+        for n in range(0, i):
+            f.readline()
+
         return f.readline().strip()
 
 # Create list of all allowed permutations of the three node states
@@ -182,9 +194,13 @@ client = None
 
 for test_name in options.TEST:
     test = Test()
-    initial_state = read_initial_state(test_name)
+    initial_state = read_line(test_name, 0)
 
-    if options.bootstrap != None:
+    if "bootstrap:" in initial_state:
+        do_bootstrap(initial_state.strip("#").replace("bootstrap:", "").strip())
+        initial_state = read_line(test_name, 1);
+
+    elif options.bootstrap != None:
         do_bootstrap(options.bootstrap)
 
     if options.client != None:
