@@ -2,20 +2,20 @@
 
 pkill -9 client.sh
 
-ssh -T vagrant@192.168.121.14 <<EOF
+ssh -T vagrant@$node_000_network <<EOF
 sudo systemctl start mariadb
 EOF
 
-ssh -T vagrant@192.168.121.250 <<EOF
+ssh -T vagrant@$node_001_network <<EOF
 sudo systemctl start mariadb
 EOF
 
-ssh -T vagrant@192.168.121.83 <<EOF
+ssh -T vagrant@$galera_000_network <<EOF
 sudo systemctl stop replication-manager
 replication-manager bootstrap --clean-all
 sudo systemctl start replication-manager
 EOF
 
-ssh -T vagrant@192.168.121.141 <<EOF
+ssh -T vagrant@$maxscale_IP <<EOF
 sudo systemctl restart maxscale
 EOF
