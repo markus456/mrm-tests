@@ -28,6 +28,7 @@ parser.add_argument("TEST", help="Test to run", nargs="+")
 options = parser.parse_args(sys.argv[1:])
 
 global test
+failed_tests = dict()
 
 class Test():
     def on_enter_MX(self):
@@ -89,6 +90,7 @@ def check_status(name, status):
             print("Expected", status, "got", i[4])
             for l in get_output():
                 print([a.strip() for a in l.split('|')])
+            failed_tests[test_name] = True
             return False
     return True
 
@@ -107,6 +109,7 @@ def check_no_status(name, status):
             print("Unexpected", status)
             for l in get_output():
                 print([a.strip() for a in l.split('|')])
+            failed_tests[test_name] = True
             return False
     return True
 
@@ -212,3 +215,7 @@ for test_name in options.TEST:
     if client != None:
         client.kill()
         client.communicate()
+
+print("Failed tests:")
+for k in failed_tests:
+    print(k)

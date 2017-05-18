@@ -7,7 +7,7 @@
 
 user=skysql
 password=skysql
-host=192.168.121.141
+host=$maxscale_IP
 port=4006
 
 table_def="CREATE OR REPLACE TABLE test.t1 (id INT)"
